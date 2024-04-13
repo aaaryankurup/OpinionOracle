@@ -7,7 +7,7 @@ from streamlit_echarts import st_echarts
 from millify import millify
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
-from transform import parse_video, youtube_metrics
+from transform import parse_video, youtube_metrics, get_top_positive_comments, get_top_negative_comments
 from database import create_user, get_user, authenticate_user, save_user_video, get_user_saved_videos, save_user_sentiment, get_user_sentiment_history
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -162,6 +162,15 @@ def show_home_page(VIDEO_URL):
             ax.set_xlabel('Comment Length (Number of Words)')
             ax.set_ylabel('Frequency')
             st.pyplot(fig)
+
+            st.subheader("Top Positive Comments")
+            top_positive_comments = get_top_positive_comments(df)
+            st.dataframe(top_positive_comments)
+
+            # Display top negative comments
+            st.subheader("Top Negative Comments")
+            top_negative_comments = get_top_negative_comments(df)
+            st.dataframe(top_negative_comments)
 
 
             

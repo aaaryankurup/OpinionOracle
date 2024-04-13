@@ -48,6 +48,30 @@ def det_lang(language):
         lang = 'Other'
     return lang
 
+def get_top_positive_comments(df, n=10):
+    """
+    Args:
+        df: DataFrame containing the comments and sentiment analysis
+        n: Number of top positive comments to retrieve (default is 10)
+    Returns:
+        DataFrame containing the top n positive comments
+    """
+    positive_comments = df[(df['TextBlob_Sentiment_Type'] == 'POSITIVE') & (df['Language'] == 'English')]
+    top_positive_comments = positive_comments.sort_values('TextBlob_Polarity', ascending=False).head(n)
+    return top_positive_comments[['Author', 'Comment', 'TextBlob_Polarity']]
+
+def get_top_negative_comments(df, n=10):
+    """
+    Args:
+        df: DataFrame containing the comments and sentiment analysis
+        n: Number of top negative comments to retrieve (default is 10)
+    Returns:
+        DataFrame containing the top n negative comments
+    """
+    negative_comments = df[(df['TextBlob_Sentiment_Type'] == 'NEGATIVE') & (df['Language'] == 'English')]
+    top_negative_comments = negative_comments.sort_values('TextBlob_Polarity').head(n)
+    return top_negative_comments[['Author', 'Comment', 'TextBlob_Polarity']]
+
 
 def parse_video(url) -> pd.DataFrame:
     """
@@ -64,39 +88,57 @@ def parse_video(url) -> pd.DataFrame:
     youtube = googleapiclient.discovery.build(
         'youtube', 'v3', developerKey='AIzaSyD15959xBKq41fZt83-mr7nQMVmmqxH05U')
 
-    # retrieve youtube video results
-    video_response = youtube.commentThreads().list(
-        part='snippet',
-        maxResults=100,
-        order='relevance',
-        videoId=video_id
-    ).execute()
+    # Maximum number of comments to retrieve
+    MAX_COMMENTS = 1000
 
-    # empty list for storing reply
-    comments = []
+    # Initialize an empty list to store all comments
+    all_comments = []
 
-    # extracting required info from each result object
-    for item in video_response['items']:
+    # Retrieve comments in batches
+    next_page_token = None
+    comment_count = 0
+    while comment_count < MAX_COMMENTS:
+        # Retrieve a batch of comments
+        comment_request = youtube.commentThreads().list(
+            part='snippet',
+            maxResults=100,  # Retrieve 100 comments per batch
+            order='relevance',
+            videoId=video_id,
+            pageToken=next_page_token
+        )
+        comment_response = comment_request.execute()
 
-        # Extracting comments
-        comment = item['snippet']['topLevelComment']['snippet']['textOriginal']
-        # Extracting author
-        author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
-        # Extracting published time
-        published_at = item['snippet']['topLevelComment']['snippet']['publishedAt']
-        # Extracting likes
-        like_count = item['snippet']['topLevelComment']['snippet']['likeCount']
-        # Extracting total replies to the comment
-        reply_count = item['snippet']['totalReplyCount']
+        # Add the retrieved comments to the all_comments list
+        for item in comment_response['items']:
+            # Extracting comments
+            comment = item['snippet']['topLevelComment']['snippet']['textOriginal']
+            # Extracting author
+            author = item['snippet']['topLevelComment']['snippet']['authorDisplayName']
+            # Extracting published time
+            published_at = item['snippet']['topLevelComment']['snippet']['publishedAt']
+            # Extracting likes
+            like_count = item['snippet']['topLevelComment']['snippet']['likeCount']
+            # Extracting total replies to the comment
+            reply_count = item['snippet']['totalReplyCount']
 
-        comments.append(
-            [author, comment, published_at, like_count, reply_count])
+            all_comments.append([author, comment, published_at, like_count, reply_count])
+            comment_count += 1
 
-    df_transform = pd.DataFrame({'Author': [i[0] for i in comments],
-                                 'Comment': [i[1] for i in comments],
-                                 'Timestamp': [i[2] for i in comments],
-                                 'Likes': [i[3] for i in comments],
-                                 'TotalReplies': [i[4] for i in comments]})
+             # Break the loop if the maximum comment count is reached
+            if comment_count >= MAX_COMMENTS:
+                break
+
+        # Check if there are more pages of comments
+        next_page_token = comment_response.get('nextPageToken')
+        if not next_page_token:
+            break
+
+    # Create a DataFrame from the list of comments
+    df_transform = pd.DataFrame({'Author': [i[0] for i in all_comments],
+                                 'Comment': [i[1] for i in all_comments],
+                                 'Timestamp': [i[2] for i in all_comments],
+                                 'Likes': [i[3] for i in all_comments],
+                                 'TotalReplies': [i[4] for i in all_comments]})
 
     # Remove extra spaces and make them lower case. Replace special emojis
     df_transform['Comment'] = df_transform['Comment'].apply(lambda x: x.strip().lower().
@@ -130,7 +172,7 @@ def parse_video(url) -> pd.DataFrame:
     df_transform['Timestamp'] = pd.to_datetime(
         df_transform['Timestamp']).dt.strftime('%Y-%m-%d %r')
     
-    
+
     # Calculate the length of each comment (number of words)
     df_transform['Comment_Length'] = df_transform['Comment'].apply(lambda x: len(x.split()))
 
