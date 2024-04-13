@@ -129,6 +129,11 @@ def parse_video(url) -> pd.DataFrame:
     # Change the Timestamp
     df_transform['Timestamp'] = pd.to_datetime(
         df_transform['Timestamp']).dt.strftime('%Y-%m-%d %r')
+    
+    
+    # Calculate the length of each comment (number of words)
+    df_transform['Comment_Length'] = df_transform['Comment'].apply(lambda x: len(x.split()))
+
 
     return df_transform
 
