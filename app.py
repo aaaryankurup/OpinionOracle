@@ -172,6 +172,8 @@ def show_home_page(VIDEO_URL):
             top_negative_comments = get_top_negative_comments(df)
             st.dataframe(top_negative_comments)
 
+            
+
 
             
     except:
@@ -305,4 +307,4 @@ pages={
 }
 
 if __name__ == "__main__":
-    main()
+    main() 

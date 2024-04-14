@@ -9,7 +9,6 @@ from langdetect import detect, LangDetectException
 from textblob import TextBlob
 import streamlit as st
 
-
 def get_polarity(text):
     """Function to get the polarity
     Args:
@@ -71,6 +70,7 @@ def get_top_negative_comments(df, n=10):
     negative_comments = df[(df['TextBlob_Sentiment_Type'] == 'NEGATIVE') & (df['Language'] == 'English')]
     top_negative_comments = negative_comments.sort_values('TextBlob_Polarity').head(n)
     return top_negative_comments[['Author', 'Comment', 'TextBlob_Polarity']]
+
 
 
 def parse_video(url) -> pd.DataFrame:
@@ -150,6 +150,7 @@ def parse_video(url) -> pd.DataFrame:
                                                                             no_punct=True,
                                                                             no_line_breaks=True,
                                                                             fix_unicode=True))
+    
     # Detect the languages of the comments
     df_transform['Language'] = df_transform['Comment'].apply(det_lang)
 
@@ -218,4 +219,4 @@ if __name__ == "__main__":
     df_main = parse_video('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
     df_yt = youtube_metrics('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
     print(df_main.head())
-    print(df_yt)
+    print(df_yt) 
