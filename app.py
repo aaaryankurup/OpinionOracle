@@ -8,7 +8,7 @@ from millify import millify
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 from transform import parse_video, youtube_metrics, get_top_positive_comments, get_top_negative_comments
-from database import create_user, get_user, authenticate_user, save_user_video, get_user_saved_videos, save_user_sentiment, get_user_sentiment_history
+from database import create_user, authenticate_user, save_user_video, get_user_saved_videos, save_user_sentiment, get_user_sentiment_history
 import pandas as pd
 import matplotlib.pyplot as plt
   
@@ -189,18 +189,16 @@ def show_about_page():
     st.write("The application was developed by [Your Name] using Python and various data analysis libraries.")
     st.write("If you have any questions or feedback, please feel free to reach out to us at [Your Email].")
 
-
 def show_login_page():
     st.title("Login")
     email = st.text_input("Email", key="login_email")
     password = st.text_input("Password", type="password", key="login_password")
-    pass
 
     if st.button("Login", key="login_button"):
         user = authenticate_user(email, password)
         if user:
+            st.success("Login successful!")
             st.session_state.user = user
-            show_user_dashboard()
         else:
             st.error("Invalid email or password")
 
@@ -285,7 +283,10 @@ def show_user_dashboard():
 
 def show_navigation():
     st.sidebar.title("Navigation")
-    selection = st.sidebar.radio("Go to", list(pages.keys()), key="navigation_selection")
+    selections = ["Home", "About", "Login", "Signup"]
+    if "user" in st.session_state:
+        selections.append("User Dashboard")
+    selection = st.sidebar.radio("Go to", selections, key="navigation_selection")
     return selection
 
 
