@@ -1,4 +1,5 @@
 import sqlite3
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Create a new SQLite database
 conn = sqlite3.connect('users.db')
@@ -19,8 +20,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS sentiment_history
 conn.commit()
 conn.close()
 
-import sqlite3
-from werkzeug.security import generate_password_hash, check_password_hash
+
 
 def create_user(name, email, password):
     conn = sqlite3.connect('users.db')

@@ -11,6 +11,8 @@ from transform import parse_video, youtube_metrics, get_top_positive_comments, g
 from database import create_user, authenticate_user, save_user_video, get_user_saved_videos, save_user_sentiment, get_user_sentiment_history
 import pandas as pd
 import matplotlib.pyplot as plt
+from transform import get_polarity
+from textblob import TextBlob
   
 def show_home_page(VIDEO_URL):
     st.title('YouTube Analytics Dashboard')
@@ -231,9 +233,9 @@ def show_signup_page():
     st.session_state.signup_success = signup_successful
 
 def show_user_dashboard():
-    st.title("User Dashboard")
     user = st.session_state.get('user')
     if user:
+        st.title("User Dashboard")
         st.write(f"Welcome, {user['name']}!")
 
         saved_videos = get_user_saved_videos(user['id'])
@@ -244,7 +246,19 @@ def show_user_dashboard():
         sentiment_history = get_user_sentiment_history(user['id'])
         st.subheader("Sentiment Analysis History")
         if sentiment_history:
-            df_sentiment_history = pd.DataFrame(sentiment_history)
+            sentiment_data = []
+            for entry in sentiment_history:
+                video_url = entry['video_url']
+                sentiment = entry['sentiment']
+                timestamp = entry['timestamp']
+
+                sentiment_data.append({
+                    'Video URL': video_url,
+                    'Sentiment': sentiment,
+                    'Timestamp': timestamp
+                })
+
+            df_sentiment_history = pd.DataFrame(sentiment_data)
             st.dataframe(df_sentiment_history)
         else:
             st.write("No sentiment analysis history found.")
@@ -253,7 +267,6 @@ def show_user_dashboard():
         if st.button("Analyze", key="analyze_button"):
             if new_video_url:
                 try:
-                    # Analyze the new video URL
                     with st.spinner('Analyzing video...'):
                         df = parse_video(new_video_url)
                         df_metrics = youtube_metrics(new_video_url)
@@ -270,9 +283,11 @@ def show_user_dashboard():
                         parsed = json.loads(result)
 
                         sentiment = parsed['data'][0][0]  # Assuming the first sentiment is the overall sentiment
-                        save_user_sentiment(user['id'], new_video_url, sentiment)
 
-                        st.success("Video analysis completed successfully!")
+                    # Save the sentiment analysis result
+                    save_user_sentiment(user['id'], new_video_url, sentiment)
+
+                    st.success("Video analysis completed successfully!")
                 except Exception as e:
                     st.error(f"Error analyzing video: {e}")
             else:
@@ -280,14 +295,15 @@ def show_user_dashboard():
 
     else:
         st.warning("Please log in to access the user dashboard.")
+        
 
+    
 def show_navigation():
     st.sidebar.title("Navigation")
-    selections = ["Home", "About", "Login", "Signup"]
-    if "user" in st.session_state:
-        selections.append("User Dashboard")
+    selections = ["Home", "About", "Login", "Signup", "User Dashboard"]
     selection = st.sidebar.radio("Go to", selections, key="navigation_selection")
     return selection
+    
 
 
 def main():
